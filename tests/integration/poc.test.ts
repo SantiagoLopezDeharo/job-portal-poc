@@ -28,10 +28,47 @@ function headersForToken(token: string) {
 
 async function syncUser(payload: Record<string, unknown>) {
 	const token = makeToken(payload);
+	const sub = String(payload.sub ?? "");
+	const role = payload.role === "company" ? "company" : "applicant";
+	const email = typeof payload.email === "string" ? payload.email : `${sub}@example.com`;
+	const firstName = typeof payload.first_name === "string" ? payload.first_name : undefined;
+	const lastName = typeof payload.last_name === "string" ? payload.last_name : undefined;
+	const fullName = [firstName, lastName].filter(Boolean).join(" ") || (typeof payload.username === "string" ? payload.username : sub);
+
 	const response = await SELF.fetch("http://local.test/internal/events/users/sync", {
 		method: "POST",
-		headers: headersForToken(token),
-		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+			"x-neon-test-bypass": "1",
+		},
+		body: JSON.stringify({
+				event_id: crypto.randomUUID(),
+				event_type: "user.created",
+			timestamp: new Date().toISOString(),
+				context: {
+					endpoint_id: "ep-test-webhook-endpoint",
+					project_name: "Job Portal PoC",
+				},
+				user: {
+				id: sub,
+				email,
+				name: fullName,
+				created_at: new Date().toISOString(),
+				metadata: {
+					role,
+					username: typeof payload.username === "string" ? payload.username : undefined,
+					first_name: firstName,
+					last_name: lastName,
+					legal_name: typeof payload.legal_name === "string" ? payload.legal_name : undefined,
+					company_id: typeof payload.company_id === "string" ? payload.company_id : undefined,
+				},
+			},
+				event_data: {
+					auth_provider: "credential",
+					ip_address: "127.0.0.1",
+					user_agent: "vitest",
+				},
+		}),
 	});
 
 	expect(response.status).toBe(201);

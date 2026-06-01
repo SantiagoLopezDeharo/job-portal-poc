@@ -4,6 +4,9 @@
 	"main": "src/index.ts",
 	"name": "job-portal-poc",
 	"upload_source_maps": true,
+	"vars": {
+		"NEON_AUTH_WEBHOOK_SECRET": "test-neon-webhook-secret"
+	},
 	"observability": {
 		"enabled": true
 	},

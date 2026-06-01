@@ -17,3 +17,29 @@ export const syncUserSchema = z.object({
 	company_id: z.string().nullable().optional(),
 	profile: z.record(z.unknown()).optional(),
 });
+
+export const neonAuthUserCreatedSchema = z.object({
+	event_id: z.string().uuid(),
+	event_type: z.literal("user.created"),
+	timestamp: z.string().datetime(),
+	context: z.object({
+		endpoint_id: z.string().optional(),
+		project_name: z.string().optional(),
+	}).optional(),
+	user: z.object({
+		id: z.string().min(1).optional(),
+		email: z.string().email().optional(),
+		name: z.string().optional(),
+		phone_number: z.string().optional(),
+		image: z.string().url().optional(),
+		email_verified: z.boolean().optional(),
+		phone_number_verified: z.boolean().optional(),
+		created_at: z.string().datetime().optional(),
+		metadata: z.record(z.unknown()).optional(),
+	}).optional(),
+	event_data: z.object({
+		auth_provider: z.enum(["credential", "google", "github", "vercel"]).optional(),
+		ip_address: z.string().optional(),
+		user_agent: z.string().optional(),
+	}).optional(),
+});

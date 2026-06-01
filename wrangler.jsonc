@@ -1,0 +1,16 @@
+{
+	"compatibility_date": "2025-10-08",
+	"main": "src/index.ts",
+	"name": "job-portal-poc",
+	"upload_source_maps": true,
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "job-portal-poc-db",
+			"database_id": "80b3ce7b-18fd-4663-90fd-f8f0b8e768b2"
+		}
+	]
+}

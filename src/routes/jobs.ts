@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import type { Env } from "../bindings";
-import { createJobPortalStore, processQueuedMatchJob, submitMatchJob } from "../lib/poc";
+import { createJobPortalStore } from "../lib/poc";
 import { ok, optionalClaims, requireClaims } from "../middleware/auth";
 import { applicationCreateSchema, applicationDecisionSchema, jobPayloadSchema } from "../schemas/jobs";
 
@@ -47,16 +47,13 @@ export function registerJobRoutes(app: Hono<{ Bindings: Env }>) {
 			userId: claims.sub,
 			jobId: body.jobId,
 		};
-		const queued = Boolean(c.env.MATCH_QUEUE);
-		if (c.env.MATCH_QUEUE) {
-			await c.env.MATCH_QUEUE.send(matchEvent);
-			await submitMatchJob(store, matchEvent);
-		} else {
-			await processQueuedMatchJob(store, matchEvent);
+		if (!c.env.MATCH_QUEUE) {
+			return c.json({ success: false, errors: [{ code: 5030, message: "Match queue not configured" }] }, 503);
 		}
 
-		const updated = await store.getApplication(application.id);
-		return c.json(ok({ application: updated ?? application, queued }), 201);
+		await c.env.MATCH_QUEUE.send(matchEvent);
+
+		return c.json(ok({ application, queued: true }), 201);
 	});
 
 	app.get("/applications", async (c) => {

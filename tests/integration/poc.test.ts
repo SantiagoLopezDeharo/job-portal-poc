@@ -1,6 +1,7 @@
-import { SELF } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetMemoryJobPortalStore } from "../../src/lib/poc";
+import { processMatchQueueMessage } from "../../src/workers/ai-match.worker";
 
 function base64UrlEncode(value: string) {
 	return Buffer.from(value)
@@ -96,10 +97,22 @@ describe("job portal PoC", () => {
 			expect.objectContaining({
 				jobId,
 				userId: "user-1",
-				matchScore: expect.any(Number),
+				matchScore: null,
 			}),
 		);
-		expect(applyBody.result.application.matchScore).toBeGreaterThan(1);
+		expect(applyBody.result.queued).toBe(true);
+
+		await processMatchQueueMessage(env, {
+			applicationId: applyBody.result.application.id,
+			userId: "user-1",
+			jobId,
+		});
+
+		const refreshedApplications = await SELF.fetch("http://local.test/applications", {
+			headers: headersForToken(applicantToken),
+		});
+		const refreshedBody = await refreshedApplications.json<any>();
+		expect(refreshedBody.result[0].matchScore).toBeGreaterThan(1);
 
 		const applicantApplications = await SELF.fetch("http://local.test/applications", {
 			headers: headersForToken(applicantToken),

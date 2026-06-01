@@ -1,4 +1,4 @@
-import { createJobPortalStore, processQueuedMatchJob } from "../lib/poc";
+import { processMatchQueueMessage } from "../workers/ai-match.worker";
 import type { Env } from "../bindings";
 
 type QueueBatch = {
@@ -6,9 +6,8 @@ type QueueBatch = {
 };
 
 export async function handleMatchQueue(batch: QueueBatch, env: Env) {
-	const store = createJobPortalStore(env);
 	for (const message of batch.messages) {
-		await processQueuedMatchJob(store, message.body);
+		await processMatchQueueMessage(env, message.body);
 		message.ack();
 	}
 }

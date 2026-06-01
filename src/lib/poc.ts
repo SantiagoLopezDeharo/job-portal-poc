@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import type { AuthClaims, UserRole } from "./auth";
 import type { Env } from "../bindings";
+import { generateMatchScore } from "../services/match-scoring";
 
 export type UserRecord = {
     id: string;
@@ -187,24 +188,13 @@ function rowToApplicationView(row: Record<string, unknown>): ApplicationView {
     };
 }
 
-function heuristicMatchScore(user: UserRecord, job: JobRecord) {
-    if (!user.cvUrl) {
-        return 1;
-    }
-
-    const text = `${user.profile.cv_text ?? ""} ${job.title} ${job.description}`.toLowerCase();
-    const tokens = text.split(/[^a-z0-9áéíóúñü]+/gi).filter(Boolean);
-    const unique = new Set(tokens);
-    return Math.min(100, Math.max(5, unique.size * 3));
-}
-
 function createMemoryStore(): JobPortalStore {
     const state =
         globalThis.__jobPortalMemoryState ??= {
             users: new Map(),
             jobs: new Map(),
             applications: new Map(),
-            queue: [],
+            queue: [] as MatchEvent[],
         };
 
     async function listJobs(companyId?: string) {
@@ -369,7 +359,7 @@ function createMemoryStore(): JobPortalStore {
                 return null;
             }
 
-            const score = heuristicMatchScore(user, job);
+            const score = generateMatchScore({ user, job });
             return this.recordMatchScore({
                 applicationId: event.applicationId,
                 userId: event.userId,
@@ -614,7 +604,7 @@ function createNeonStore(databaseUrl: string): JobPortalStore {
                 return null;
             }
 
-            const score = user.cvUrl ? heuristicMatchScore(user, job) : 1;
+            const score = generateMatchScore({ user, job });
             return this.recordMatchScore({ applicationId, userId, jobId, matchScore: score });
         },
         async queueMatch(event) {

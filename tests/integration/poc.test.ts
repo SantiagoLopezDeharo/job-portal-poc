@@ -1,7 +1,7 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetMemoryJobPortalStore } from "../../src/lib/poc";
-import { processMatchQueueMessage } from "../../src/workers/ai-match.worker";
+import { processCvObjectEventMessage, processMatchQueueMessage } from "../../src/workers/ai-match.worker";
 
 function base64UrlEncode(value: string) {
 	return Buffer.from(value)
@@ -50,6 +50,24 @@ async function createJob(companyToken: string, job: Record<string, unknown>) {
 	return body.result.id;
 }
 
+async function uploadCv(applicantToken: string, filename = "resume.pdf") {
+	const formData = new FormData();
+	formData.set("file", new File(["frontend react typescript"], filename, { type: "application/pdf" }));
+
+	const response = await SELF.fetch("http://local.test/cv", {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${applicantToken}`,
+		},
+		body: formData,
+	});
+
+	expect(response.status).toBe(202);
+	const body = await response.json<{ success: boolean; result: { key: string; queued: boolean } }>();
+	expect(body.result.queued).toBe(true);
+	return body.result.key;
+}
+
 describe("job portal PoC", () => {
 	beforeEach(() => {
 		resetMemoryJobPortalStore();
@@ -77,12 +95,14 @@ describe("job portal PoC", () => {
 			payload: { seniority: "mid" },
 		});
 
-		const cvUpload = await SELF.fetch("http://local.test/internal/events/cv-uploaded", {
-			method: "POST",
-			headers: headersForToken(applicantToken),
-			body: JSON.stringify({ cvUrl: "https://storage.example.com/cv-user-1.pdf" }),
+		const cvKey = await uploadCv(applicantToken);
+		await processCvObjectEventMessage(env, {
+			action: "PutObject",
+			bucket: "job-portal-cv-bucket",
+			object: {
+				key: cvKey,
+			},
 		});
-		expect(cvUpload.status).toBe(200);
 
 		const applyResponse = await SELF.fetch("http://local.test/jobs/applications", {
 			method: "POST",
@@ -107,6 +127,10 @@ describe("job portal PoC", () => {
 			userId: "user-1",
 			jobId,
 		});
+
+		const cvResponse = await SELF.fetch(`http://local.test/cv/${cvKey}`);
+		expect(cvResponse.status).toBe(200);
+		expect(await cvResponse.text()).toContain("frontend react typescript");
 
 		const refreshedApplications = await SELF.fetch("http://local.test/applications", {
 			headers: headersForToken(applicantToken),

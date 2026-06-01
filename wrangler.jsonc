@@ -10,6 +10,12 @@
 	"ai": {
 		"binding": "AI"
 	},
+	"r2_buckets": [
+		{
+			"binding": "CV_BUCKET",
+			"bucket_name": "job-portal-cv-bucket"
+		}
+	],
 	"queues": {
 		"producers": [
 			{
@@ -20,6 +26,11 @@
 		"consumers": [
 			{
 				"queue": "application-match-score-queue",
+				"max_batch_size": 10,
+				"max_batch_timeout": 5
+			},
+			{
+				"queue": "cv-object-events-queue",
 				"max_batch_size": 10,
 				"max_batch_timeout": 5
 			}

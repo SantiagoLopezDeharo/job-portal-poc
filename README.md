@@ -1,19 +1,12 @@
-# OpenAPI Template
+# Job Portal PoC
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/chanfana-openapi-template)
 
-![OpenAPI Template Preview](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/91076b39-1f5b-46f6-7f14-536a6f183000/public)
-
 <!-- dash-content-start -->
 
-This is a Cloudflare Worker with OpenAPI 3.1 Auto Generation and Validation using [chanfana](https://github.com/cloudflare/chanfana) and [Hono](https://github.com/honojs/hono).
+This repository now acts as a Cloudflare Workers PoC for a job portal backend using Neon as the primary database, managed identity for authentication, and worker-driven business logic for jobs, applications, storage events, and async match scoring.
 
-This is an example project made to be used as a quick start into building OpenAPI compliant Workers that generates the
-`openapi.json` schema automatically from code and validates the incoming request to the defined parameters or request body.
-
-This template includes various endpoints, a D1 database, and integration tests using [Vitest](https://vitest.dev/) as examples. In endpoints, you will find [chanfana D1 AutoEndpoints](https://chanfana.com/endpoints/auto/d1) and a [normal endpoint](https://chanfana.com/endpoints/defining-endpoints) to serve as examples for your projects.
-
-Besides being able to see the OpenAPI schema (openapi.json) in the browser, you can also extract the schema locally no hassle by running this command `npm run schema`.
+The worker keeps a memory fallback for tests when `NEON_DATABASE_URL` is not configured, but the production path is Neon Postgres.
 
 <!-- dash-content-end -->
 
@@ -36,37 +29,31 @@ A live public deployment of this template is available at [https://openapi-templ
    ```bash
    npm install
    ```
-2. Create a [D1 database](https://developers.cloudflare.com/d1/get-started/) with the name "openapi-template-db":
-   ```bash
-   npx wrangler d1 create openapi-template-db
-   ```
-   ...and update the `database_id` field in `wrangler.json` with the new database ID.
-3. Run the following db migration to initialize the database (notice the `migrations` directory in this project):
-   ```bash
-   npx wrangler d1 migrations apply DB --remote
-   ```
-4. Deploy the project!
+2. Store the Neon connection string as `NEON_DATABASE_URL` using either `wrangler secret put NEON_DATABASE_URL` or a local `.dev.vars` file.
+3. If you want JWT verification against a managed identity provider, also configure `JWKS_URL`, `AUTH_ISSUER`, and `AUTH_AUDIENCE`.
+4. Apply the PostgreSQL schema in [`migrations/0001_add_tasks_table.sql`](migrations/0001_add_tasks_table.sql) to your Neon database.
+5. Deploy the project!
    ```bash
    npx wrangler deploy
    ```
-5. Monitor your worker
+6. Monitor your worker
    ```bash
    npx wrangler tail
    ```
 
 ## Testing
 
-This template includes integration tests using [Vitest](https://vitest.dev/). To run the tests locally:
+This project includes integration tests using [Vitest](https://vitest.dev/). To run the tests locally:
 
 ```bash
 npm run test
 ```
 
-Test files are located in the `tests/` directory, with examples demonstrating how to test your endpoints and database interactions.
+Test files are located in the `tests/` directory and run against the in-memory store, so they do not require a Neon connection.
 
 ## Project structure
 
 1. Your main router is defined in `src/index.ts`.
-2. Each endpoint has its own file in `src/endpoints/`.
+2. Neon and auth helpers live in `src/lib/`.
 3. Integration tests are located in the `tests/` directory.
-4. For more information read the [chanfana documentation](https://chanfana.com/), [Hono documentation](https://hono.dev/docs), and [Vitest documentation](https://vitest.dev/guide/).
+4. For more information read the [Hono documentation](https://hono.dev/docs) and [Vitest documentation](https://vitest.dev/guide/).

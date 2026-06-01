@@ -1,18 +1,10 @@
-import path from "node:path";
-import {
-	defineWorkersConfig,
-	readD1Migrations,
-} from "@cloudflare/vitest-pool-workers/config";
-
-const migrationsPath = path.join(__dirname, "..", "migrations");
-const migrations = await readD1Migrations(migrationsPath);
+import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
 
 export default defineWorkersConfig({
 	esbuild: {
 		target: "esnext",
 	},
 	test: {
-		setupFiles: ["./tests/apply-migrations.ts"],
 		poolOptions: {
 			workers: {
 				singleWorker: true,
@@ -22,7 +14,7 @@ export default defineWorkersConfig({
 				miniflare: {
 					compatibilityFlags: ["experimental", "nodejs_compat"],
 					bindings: {
-						MIGRATIONS: migrations,
+						TEST_MODE: "1",
 					},
 				},
 			},

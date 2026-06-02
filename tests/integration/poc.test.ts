@@ -289,4 +289,68 @@ describe("job portal PoC", () => {
 		expect(companyBody.result).toHaveLength(1);
 		expect(companyBody.result[0].companyId).toBe("company-c");
 	});
+
+	it("allows a company user to setup their profile", async () => {
+		const companyToken = makeToken({
+			sub: "new-company-id",
+			role: "company",
+			company_id: "new-company-id",
+		});
+
+		const response = await SELF.fetch("http://local.test/users/me/profile", {
+			method: "POST",
+			headers: headersForToken(companyToken),
+			body: JSON.stringify({
+				role: "company",
+				legalName: "Empresa SA",
+			}),
+		});
+
+		expect(response.status).toBe(200);
+		const body = await response.json<any>();
+		expect(body.success).toBe(true);
+		expect(body.result.role).toBe("company");
+		expect(body.result.legalName).toBe("Empresa SA");
+		expect(body.result.id).toBe("new-company-id");
+	});
+
+	it("allows a worker user to setup their profile and maps it to applicant role in db", async () => {
+		const workerToken = makeToken({
+			sub: "new-worker-id",
+			role: "applicant",
+		});
+
+		const response = await SELF.fetch("http://local.test/users/me/profile", {
+			method: "PUT",
+			headers: headersForToken(workerToken),
+			body: JSON.stringify({
+				role: "worker",
+				username: "workerUsername",
+				firstName: "workerFirstName",
+				lastName: "workerLastName",
+			}),
+		});
+
+		expect(response.status).toBe(200);
+		const body = await response.json<any>();
+		expect(body.success).toBe(true);
+		expect(body.result.role).toBe("applicant");
+		expect(body.result.username).toBe("workerUsername");
+		expect(body.result.firstName).toBe("workerFirstName");
+		expect(body.result.lastName).toBe("workerLastName");
+		expect(body.result.id).toBe("new-worker-id");
+	});
+
+	it("returns 401 for requests without auth token", async () => {
+		const response = await SELF.fetch("http://local.test/users/me/profile", {
+			method: "POST",
+			body: JSON.stringify({
+				role: "company",
+				legalName: "Empresa SA",
+			}),
+		});
+
+		expect(response.status).toBe(401);
+	});
 });
+

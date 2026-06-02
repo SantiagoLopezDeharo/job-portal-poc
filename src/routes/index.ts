@@ -4,10 +4,12 @@ import { registerCvRoutes } from "./cv";
 import { registerHealthRoutes } from "./health";
 import { registerInternalRoutes } from "./internal";
 import { registerJobRoutes } from "./jobs";
+import { registerUserRoutes } from "./users";
 
 export function registerRoutes(app: Hono<{ Bindings: Env }>) {
     registerHealthRoutes(app);
     registerCvRoutes(app);
     registerInternalRoutes(app);
     registerJobRoutes(app);
+    registerUserRoutes(app);
 }

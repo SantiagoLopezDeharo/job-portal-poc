@@ -43,3 +43,17 @@ export const neonAuthUserCreatedSchema = z.object({
 		user_agent: z.string().optional(),
 	}).optional(),
 });
+
+export const profileSetupSchema = z.discriminatedUnion("role", [
+	z.object({
+		role: z.literal("company"),
+		legalName: z.string().min(1),
+	}),
+	z.object({
+		role: z.literal("worker"),
+		username: z.string().min(1),
+		firstName: z.string().min(1),
+		lastName: z.string().min(1),
+	}),
+]);
+

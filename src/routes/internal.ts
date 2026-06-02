@@ -73,12 +73,14 @@ export function registerInternalRoutes(app: Hono<{ Bindings: Env }>) {
 
         const parsed = neonAuthUserCreatedSchema.safeParse(parsedBody);
         if (!parsed.success) {
+            console.log("Failed to validate payload", { errors: parsed.error.errors });
             const invalidPayload = error(400, "Invalid Neon Auth user.created payload");
             return c.json(invalidPayload.body, invalidPayload.status);
         }
 
         const headerEventType = c.req.header("x-neon-event-type");
         if (headerEventType && headerEventType !== parsed.data.event_type) {
+            console.log("Event type header does not match payload", { headerEventType, payloadEventType: parsed.data.event_type });
             const mismatch = error(400, "Event type header does not match payload");
             return c.json(mismatch.body, mismatch.status);
         }
@@ -86,6 +88,7 @@ export function registerInternalRoutes(app: Hono<{ Bindings: Env }>) {
         const event = parsed.data;
         const webhookUser = event.user;
         if (!webhookUser?.id) {
+            console.log("Missing user.id in webhook event", { event });
             const missingUser = error(400, "user.id is required for user.created");
             return c.json(missingUser.body, missingUser.status);
         }

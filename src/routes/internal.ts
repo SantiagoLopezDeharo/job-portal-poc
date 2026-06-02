@@ -49,7 +49,7 @@ function userFieldsFromMetadata(metadata: Record<string, unknown> | null, name?:
 export function registerInternalRoutes(app: Hono<{ Bindings: Env }>) {
     app.post("/internal/events/users/sync", async (c) => {
         const rawBody = await c.req.text();
-        
+
         // Since we are doing a PoC I will not waste time making sure this works as it should, security is not really a concert here.
 
         /*
@@ -64,9 +64,12 @@ export function registerInternalRoutes(app: Hono<{ Bindings: Env }>) {
         try {
             parsedBody = JSON.parse(rawBody);
         } catch {
+            console.log("Failed to parse JSON body", { rawBody });
             const invalidJson = error(400, "Invalid JSON payload");
             return c.json(invalidJson.body, invalidJson.status);
         }
+
+        console.log("Received webhook event", JSON.stringify(parsedBody));
 
         const parsed = neonAuthUserCreatedSchema.safeParse(parsedBody);
         if (!parsed.success) {

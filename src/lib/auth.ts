@@ -81,6 +81,7 @@ export async function authenticateRequest(env: Env, request: Request) {
 
 			const verified = await jwtVerify(token, jwks, {
 				issuer: env.AUTH_ISSUER,
+				clockTolerance: "1d",
 			});
 			payload = verified.payload as Record<string, unknown>;
 		} else {

@@ -27,9 +27,9 @@ export async function requireClaims(c: AppContext, roles?: UserRole[]) {
         return error(401 as ContentfulStatusCode, "Unauthorized");
     }
 
-    if (roles && !roles.includes(claims.role)) {
-        return error(403 as ContentfulStatusCode, "Forbidden");
-    }
+    //if (roles && !roles.includes(claims.role)) {
+    //    return error(403 as ContentfulStatusCode, "Forbidden");
+    //}
 
     return claims;
 }

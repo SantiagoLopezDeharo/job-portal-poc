@@ -1,5 +1,5 @@
 import type { Env } from "../bindings";
-import type { JobRecord, UserRecord } from "../lib/poc";
+import type { JobRecord, UserRecord } from "../lib/types";
 
 export type MatchScoringInput = {
     user: UserRecord;

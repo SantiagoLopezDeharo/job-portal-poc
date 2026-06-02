@@ -31,7 +31,7 @@ export const neonAuthUserCreatedSchema = z.object({
 		email: z.string().email().optional(),
 		name: z.string().optional(),
 		phone_number: z.string().optional(),
-		image: z.string().url().optional(),
+		image: z.string().url().nullish(),
 		email_verified: z.boolean().optional(),
 		phone_number_verified: z.boolean().optional(),
 		created_at: z.string().datetime().optional(),

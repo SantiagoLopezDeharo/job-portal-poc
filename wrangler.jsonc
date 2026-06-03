@@ -1,11 +1,18 @@
 {
 	"compatibility_date": "2025-10-08",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"main": "src/index.ts",
 	"name": "job-portal-poc",
 	"upload_source_maps": true,
 	"observability": {
 		"enabled": true
+	},
+	"vars": {
+		"JWKS_URL": "https://ep-little-dream-aclp5eyr.neonauth.sa-east-1.aws.neon.tech/neondb/auth/.well-known/jwks.json",
+		"AUTH_ISSUER": "https://ep-little-dream-aclp5eyr.neonauth.sa-east-1.aws.neon.tech",
+		"AUTH_AUDIENCE": "https://ep-little-dream-aclp5eyr.neonauth.sa-east-1.aws.neon.tech"
 	},
 	"ai": {
 		"binding": "AI"

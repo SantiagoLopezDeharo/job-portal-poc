@@ -29,8 +29,8 @@ A live public deployment of this template is available at [https://openapi-templ
    ```bash
    npm install
    ```
-2. Store the Neon connection string as `NEON_DATABASE_URL` using either `wrangler secret put NEON_DATABASE_URL` or a local `.dev.vars` file.
-3. If you want JWT verification against a managed identity provider, also configure `JWKS_URL`, `AUTH_ISSUER`, and `AUTH_AUDIENCE`.
+2. Store the Neon connection string as `NEON_DATABASE_URL` using either `npx wrangler secret put NEON_DATABASE_URL` or a local `.dev.vars` file.
+3. If you want JWT verification against a managed identity provider, also configure `JWKS_URL`, `AUTH_ISSUER`, and `AUTH_AUDIENCE` on wrangler.jsonc variables.
 4. Apply the PostgreSQL schema in [`migrations/0001_add_tasks_table.sql`](migrations/0001_add_tasks_table.sql) to your Neon database.
 5. Deploy the project!
    ```bash

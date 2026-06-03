@@ -80,8 +80,9 @@ export async function authenticateRequest(env: Env, request: Request) {
 			jwksCache.set(env.JWKS_URL, jwks);
 
 			const verified = await jwtVerify(token, jwks, {
-				issuer: env.AUTH_ISSUER,
-				clockTolerance: "7d",
+				issuer: env.AUTH_ISSUER || undefined,
+				audience: env.AUTH_AUDIENCE || undefined,
+				clockTolerance: "1d",
 			});
 			payload = verified.payload as Record<string, unknown>;
 		} else {
@@ -124,6 +125,9 @@ export async function authenticateRequest(env: Env, request: Request) {
 		};
 	} catch (err) {
 		console.warn("Failed to authenticate request token:", err);
+		if (err instanceof Error) {
+			console.warn("Reason:", err.name, err.message);
+		}
 		return null;
 	}
 }

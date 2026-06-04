@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { JobRecord, JobInput } from "../lib/types";
+import { decodeCursor, encodeCursor } from "../lib/cursor";
 
 function toJson(input: unknown) {
     return typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
@@ -38,26 +39,52 @@ export class JobRepository {
         return rowToJob(res[0]);
     }
 
-    async listJobs(companyId?: string): Promise<(JobRecord & { companyLegalName: string | null })[]> {
-        const rows = companyId
-            ? await this.sql`
-          select j.*, u.legal_name as company_legal_name
-          from jobs j
-          left join users u on u.id = j.company_id
-          where j.company_id = ${companyId}
-          order by j.created_at desc
-        `
-            : await this.sql`
-          select j.*, u.legal_name as company_legal_name
-          from jobs j
-          left join users u on u.id = j.company_id
-          order by j.created_at desc
-        `;
+    async listJobs(
+        companyId?: string,
+        cursor?: string,
+        limit: number = 20
+    ): Promise<{ items: (JobRecord & { companyLegalName: string | null })[]; nextCursor: string | null }> {
+        const fetchLimit = limit + 1;
+        const params: unknown[] = [];
+        const clauses: string[] = [];
+        let idx = 1;
 
+        if (companyId) {
+            clauses.push(`j.company_id = $${idx++}`);
+            params.push(companyId);
+        }
+
+        if (cursor) {
+            const { id } = decodeCursor(cursor);
+            clauses.push(`(j.created_at, j.id) < (select created_at, id from jobs where id = $${idx})`);
+            params.push(id);
+            idx += 1;
+        }
+
+        const where = clauses.length ? `where ${clauses.join(" and ")}` : "";
+        params.push(fetchLimit);
+
+        const rows = await this.sql(
+            `select j.*, u.legal_name as company_legal_name
+             from jobs j
+             left join users u on u.id = j.company_id
+             ${where}
+             order by j.created_at desc, j.id desc
+             limit $${idx}`,
+            params
+        );
         const res = rows as unknown as Record<string, unknown>[];
-        return res.map((row) => ({
+        const items = res.map((row) => ({
             ...rowToJob(row),
             companyLegalName: row.company_legal_name as string | null,
         }));
+
+        const hasMore = items.length > limit;
+        const result = hasMore ? items.slice(0, limit) : items;
+        const nextCursor = hasMore
+            ? encodeCursor(result[result.length - 1].id)
+            : null;
+
+        return { items: result, nextCursor };
     }
 }

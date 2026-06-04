@@ -8,8 +8,8 @@ export class JobService {
         return this.repos.jobs.createJob(companyId, input);
     }
 
-    async listJobs(companyId?: string) {
-        return this.repos.jobs.listJobs(companyId);
+    async listJobs(companyId?: string, cursor?: string, limit: number = 20) {
+        return this.repos.jobs.listJobs(companyId, cursor, limit);
     }
 
     async applyToJob(userId: string, jobId: string, queue?: Queue<MatchEvent>) {
@@ -26,10 +26,10 @@ export class JobService {
         return application;
     }
 
-    async listApplications(role: string, id: string) {
+    async listApplications(role: string, id: string, cursor?: string, limit: number = 20) {
         return role === "company"
-            ? this.repos.applications.listByCompany(id)
-            : this.repos.applications.listByApplicant(id);
+            ? this.repos.applications.listByCompany(id, cursor, limit)
+            : this.repos.applications.listByApplicant(id, cursor, limit);
     }
 
     async decideApplication(applicationId: string, companyId: string, accepted: boolean) {

@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { ApplicationRecord, ApplicationView } from "../lib/types";
+import { decodeCursor, encodeCursor } from "../lib/cursor";
 
 function toNumber(value: unknown) {
     if (typeof value === "number") return value;
@@ -68,38 +69,96 @@ export class ApplicationRepository {
         };
     }
 
-    async listByApplicant(userId: string): Promise<ApplicationView[]> {
-        const rows = await this.sql`
-              select a.*, j.title as job_title, j.company_id as job_company_id,
+    async listByApplicant(
+        userId: string,
+        cursor?: string,
+        limit: number = 20
+    ): Promise<{ items: ApplicationView[]; nextCursor: string | null }> {
+        const fetchLimit = limit + 1;
+        const params: unknown[] = [userId];
+        const clauses: string[] = [`a.user_id = $1`];
+        let idx = 2;
+
+        if (cursor) {
+            const { id } = decodeCursor(cursor);
+            clauses.push(`(a.created_at, a.id) < (select created_at, id from applications where id = $${idx})`);
+            params.push(id);
+            idx += 1;
+        }
+
+        params.push(fetchLimit);
+        const where = clauses.join(" and ");
+
+        const rows = await this.sql(
+            `select a.*, j.title as job_title, j.company_id as job_company_id,
                 coalesce(c.legal_name, '') as other_entity_name,
                 u.first_name as applicant_name, u.last_name as applicant_sir_name,
                 c.legal_name as company_legal_name
-              from applications a
-              inner join jobs j on j.id = a.job_id
-              inner join users u on u.id = a.user_id
-              left join users c on c.id = j.company_id
-              where a.user_id = ${userId}
-              order by a.created_at desc
-        `;
+             from applications a
+             inner join jobs j on j.id = a.job_id
+             inner join users u on u.id = a.user_id
+             left join users c on c.id = j.company_id
+             where ${where}
+             order by a.created_at desc, a.id desc
+             limit $${idx}`,
+            params
+        );
         const res = rows as unknown as Record<string, unknown>[];
-        return res.map((row) => rowToApplicationView(row));
+        const items = res.map((row) => rowToApplicationView(row));
+
+        const hasMore = items.length > limit;
+        const result = hasMore ? items.slice(0, limit) : items;
+        const nextCursor = hasMore
+            ? encodeCursor(result[result.length - 1].id)
+            : null;
+
+        return { items: result, nextCursor };
     }
 
-    async listByCompany(companyId: string): Promise<ApplicationView[]> {
-        const rows = await this.sql`
-              select a.*, j.title as job_title, j.company_id as job_company_id,
+    async listByCompany(
+        companyId: string,
+        cursor?: string,
+        limit: number = 20
+    ): Promise<{ items: ApplicationView[]; nextCursor: string | null }> {
+        const fetchLimit = limit + 1;
+        const params: unknown[] = [companyId];
+        const clauses: string[] = [`j.company_id = $1`];
+        let idx = 2;
+
+        if (cursor) {
+            const { id } = decodeCursor(cursor);
+            clauses.push(`(a.created_at, a.id) < (select created_at, id from applications where id = $${idx})`);
+            params.push(id);
+            idx += 1;
+        }
+
+        params.push(fetchLimit);
+        const where = clauses.join(" and ");
+
+        const rows = await this.sql(
+            `select a.*, j.title as job_title, j.company_id as job_company_id,
                 concat_ws(' ', u.first_name, u.last_name) as other_entity_name,
                 u.first_name as applicant_name, u.last_name as applicant_sir_name,
                 c.legal_name as company_legal_name
-              from applications a
-              inner join jobs j on j.id = a.job_id
-              inner join users u on u.id = a.user_id
-              left join users c on c.id = j.company_id
-              where j.company_id = ${companyId}
-              order by a.created_at desc
-        `;
+             from applications a
+             inner join jobs j on j.id = a.job_id
+             inner join users u on u.id = a.user_id
+             left join users c on c.id = j.company_id
+             where ${where}
+             order by a.created_at desc, a.id desc
+             limit $${idx}`,
+            params
+        );
         const res = rows as unknown as Record<string, unknown>[];
-        return res.map((row) => rowToApplicationView(row));
+        const items = res.map((row) => rowToApplicationView(row));
+
+        const hasMore = items.length > limit;
+        const result = hasMore ? items.slice(0, limit) : items;
+        const nextCursor = hasMore
+            ? encodeCursor(result[result.length - 1].id)
+            : null;
+
+        return { items: result, nextCursor };
     }
 
     async updateDecision(applicationId: string, accepted: boolean): Promise<ApplicationRecord | null> {

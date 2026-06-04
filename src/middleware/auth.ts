@@ -17,6 +17,10 @@ export function ok<T>(result: T) {
     return { success: true as const, result };
 }
 
+export function paginated<T>(result: T[], nextCursor: string | null) {
+    return { success: true as const, result, nextCursor };
+}
+
 export function error(status: ContentfulStatusCode, message: string): RouteError {
     return { status, body: { success: false, errors: [{ code: status * 10, message }] } };
 }

@@ -2,8 +2,18 @@ import { Context } from "hono";
 import { Env } from "../bindings";
 import { createRepositories } from "../repositories";
 import { JobService } from "../services/domain/job.service";
-import { jobPayloadSchema, applicationCreateSchema, applicationDecisionSchema } from "../schemas/jobs";
-import { ok, requireClaims, optionalClaims } from "../middleware/auth";
+import {
+    jobPayloadSchema,
+    applicationCreateSchema,
+    applicationDecisionSchema,
+    paginationSchema,
+} from "../schemas/jobs";
+import {
+    ok,
+    paginated,
+    requireClaims,
+    optionalClaims,
+} from "../middleware/auth";
 
 export class JobController {
     static async create(c: Context<{ Bindings: Env }>) {
@@ -20,13 +30,14 @@ export class JobController {
 
     static async list(c: Context<{ Bindings: Env }>) {
         const claims = await optionalClaims(c);
+        const { cursor, limit } = paginationSchema.parse(c.req.query());
         const service = new JobService(createRepositories(c.env));
 
         const result = claims?.role === "company"
-            ? await service.listJobs(claims.companyId ?? claims.sub)
-            : await service.listJobs();
+            ? await service.listJobs(claims.companyId ?? claims.sub, cursor, limit)
+            : await service.listJobs(undefined, cursor, limit);
 
-        return c.json(ok(result));
+        return c.json(paginated(result.items, result.nextCursor));
     }
 
     static async apply(c: Context<{ Bindings: Env }>) {
@@ -52,10 +63,21 @@ export class JobController {
         const claims = await requireClaims(c);
         if ("status" in claims) return c.json(claims.body, claims.status);
 
-        const service = new JobService(createRepositories(c.env));
-        const result = await service.listApplications(claims.role, claims.companyId ?? claims.sub);
+        const {
+            cursor,
+            limit,
+        } = paginationSchema.parse(c.req.query());
 
-        return c.json(ok(result));
+        const service = new JobService(createRepositories(c.env));
+
+        const result = await service.listApplications(
+            claims.role,
+            claims.companyId ?? claims.sub,
+            cursor,
+            limit,
+        );
+
+        return c.json(paginated(result.items, result.nextCursor));
     }
 
     static async decide(c: Context<{ Bindings: Env }>) {
